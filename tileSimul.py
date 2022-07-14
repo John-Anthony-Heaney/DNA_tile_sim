@@ -1,8 +1,10 @@
+from collections import OrderedDict
 import pygame
 import random
 import copy
+import time
 
-class tile :
+class Tile :
     def __init__(self, north, east,south,west):
         self.north = north
         self.east = east
@@ -46,12 +48,12 @@ def showTile(tile,screenDim,tableSize):
         pygame.draw.polygon(screen, tileColors[tile.south] ,(bottomLeft,bottomRight,center))
         pygame.draw.polygon(screen, tileColors[tile.west], (topLeft,bottomLeft,center))
 
-        pygame.draw.line(screen, black, topLeft, topRight,2)
-        pygame.draw.line(screen, black, bottomLeft, bottomRight,2)
-        pygame.draw.line(screen, black, topLeft, bottomLeft,2)
-        pygame.draw.line(screen, black, topRight, bottomRight,2)
-        pygame.draw.line(screen, black, topLeft, bottomRight,2)
-        pygame.draw.line(screen, black, bottomLeft, topRight,2)
+        pygame.draw.line(screen, black, topLeft, topRight,1)
+        pygame.draw.line(screen, black, bottomLeft, bottomRight,1)
+        pygame.draw.line(screen, black, topLeft, bottomLeft,1)
+        pygame.draw.line(screen, black, topRight, bottomRight,1)
+        pygame.draw.line(screen, black, topLeft, bottomRight,1)
+        pygame.draw.line(screen, black, bottomLeft, topRight,1)
 
         font = pygame.font.Font('freesansbold.ttf', int(size/3))
 
@@ -131,52 +133,53 @@ def cover(tile):
 
     for pos in posList:
 
-        try:
-            print(allTiles[pos])
-
-        except KeyError:
+        
+        if(allTiles.get(pos) == None):
             
             if(pos in possibles):
 
-                tempTile = checkTile(pos)
+                tempTile = copy.deepcopy(checkTile(pos))
 
-                print(tempTile)
+                if(type(tempTile) == Tile):
+                    tempTile.setTilePos(pos[0],pos[1])
 
-                print(type(tempTile))
+                    newTiles[pos] = tempTile
 
-                print(type(tempTile)==tile)
-
-                if(type(tempTile) != str):
-                    print("Yessss")
-
-                    allTiles[pos] = tempTile
-
+                   
             else:
                 possibles.add(pos)
 
-                print("This is an empty sqaure")
+tableSize = 150
 
-tableSize = 10
-
-tileSet = [tile(1,0,2,1),tile(1,0,1,1),tile(0,0,0,0),tile(1,1,1,1),tile(1,2,1,2),tile(0,1,2,0)]
+tileSet = [Tile(0,0,0,0),Tile(0,1,1,0),Tile(0,2,0,1),Tile(1,0,1,1),Tile(1,1,0,2),Tile(1,2,1,2)]
 
 allTiles = {}
 
-for x in range(100):
+newTiles = {}
+
+for x in range(tableSize):
         tile = copy.deepcopy(tileSet[random.randint(0, 5)])
-        rand = random.randint(1, tableSize -1)
-        tile.setTilePos(rand,rand)
+        tile.setTilePos(x,x)
 
-        allTiles[(rand,rand)] = tile
+        allTiles[(x,x)] = tile
 
-print(allTiles)
 
 possibles = set()
 
+start = time.process_time()
 
+while(True):
+    for tile in allTiles.values():
+        cover(tile)
 
-for tile in allTiles.values():
-    cover(tile)
+    if newTiles == {}:
+        break
+
+    allTiles.update(newTiles)
+
+    newTiles.clear()
+
+print(time.process_time() - start)
 
 
 pygame.init()
