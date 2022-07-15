@@ -1,8 +1,8 @@
-from collections import OrderedDict
 import pygame
 import random
 import copy
 import time
+from tileSetList import tileSetList
 
 class Tile :
     def __init__(self, north, east,south,west):
@@ -78,7 +78,7 @@ def showTile(tile,screenDim,tableSize):
         screen.blit(textSouth, textRectSouth)
         screen.blit(textWest, textRectWest)
 
-def checkTile(pos):
+def checkTileND(pos):
         returnTile = None
         numPosTile = 0
         x = pos[0]
@@ -132,26 +132,84 @@ def cover(tile):
     posList = [(x,y+1),(x+1,y),(x,y-1),(x-1,y)]
 
     for pos in posList:
-
-        
+       
         if(allTiles.get(pos) == None):
             
             if(pos in possibles):
 
-                tempTile = copy.deepcopy(checkTile(pos))
+                tempTile = copy.deepcopy(checkTileD(pos))
 
                 if(type(tempTile) == Tile):
                     tempTile.setTilePos(pos[0],pos[1])
 
                     newTiles[pos] = tempTile
-
-                   
+              
             else:
                 possibles.add(pos)
 
-tableSize = 150
+def genTileSetDict(tileSet):
+    tileSetDict = {}
+    
+    for x in tileSetList:
+        numPosTile = 0
+        returnTile = None
+        for tile in tileSet:
+            
+            tempList = [tile.north==x[0] or x[0]==None,
+            tile.east==x[1] or x[1]==None,
+            tile.south==x[2] or x[2]==None,
+            tile.west==x[3] or x[3]==None]
+
+            if(all(tempList)):
+                numPosTile +=1
+                if(returnTile == None):
+                    returnTile = copy.deepcopy(tile)
+                else:
+                    break
+        if(numPosTile>1):
+            tileSetDict[x] = "undetermined"
+        elif(returnTile != None):
+            tileSetDict[x] = returnTile
+        else:
+            tileSetDict[x] = "hole"
+
+    return tileSetDict 
+
+def checkTileD(pos):
+    lookUpList = [None,None,None,None]
+    x = pos[0]
+    y = pos[1]
+    posList = [(x,y+1),(x+1,y),(x,y-1),(x-1,y)]
+
+    if(allTiles.get(posList[0]) != None):
+        lookUpList[0] = allTiles.get(posList[0]).south
+
+    if(allTiles.get(posList[1]) != None):
+        lookUpList[1]= allTiles.get(posList[1]).west
+
+    if(allTiles.get(posList[2]) != None):
+        lookUpList[2] = allTiles.get(posList[2]).north
+          
+    if(allTiles.get(posList[3]) != None):
+        lookUpList[3] = allTiles.get(posList[3]).east
+
+
+    numNone = 0
+    for x in lookUpList:
+        if(x == None):
+            numNone += 1
+    if(numNone<3):
+        return tileSetDict[tuple(lookUpList)]
+    else: 
+        return "hole"
+
+start = time.process_time()
+
+tableSize = 300
 
 tileSet = [Tile(0,0,0,0),Tile(0,1,1,0),Tile(0,2,0,1),Tile(1,0,1,1),Tile(1,1,0,2),Tile(1,2,1,2)]
+
+tileSetDict = genTileSetDict(tileSet)
 
 allTiles = {}
 
@@ -165,8 +223,6 @@ for x in range(tableSize):
 
 
 possibles = set()
-
-start = time.process_time()
 
 while(True):
     for tile in allTiles.values():
@@ -211,3 +267,4 @@ while running:
 
 # Done! Time to quit.
 pygame.quit()
+
