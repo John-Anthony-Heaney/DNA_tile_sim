@@ -132,7 +132,7 @@ def cover(tile):
     posList = [(x,y+1),(x+1,y),(x,y-1),(x-1,y)]
 
     for pos in posList:
-       
+
         if(allTiles.get(pos) == None):
             
             if(pos in possibles):
@@ -143,6 +143,8 @@ def cover(tile):
                     tempTile.setTilePos(pos[0],pos[1])
 
                     newTiles[pos] = tempTile
+
+                possibles.remove(pos)
               
             else:
                 possibles.add(pos)
@@ -185,7 +187,7 @@ def checkTileD(pos):
         lookUpList[0] = allTiles.get(posList[0]).south
 
     if(allTiles.get(posList[1]) != None):
-        lookUpList[1]= allTiles.get(posList[1]).west
+        lookUpList[1] = allTiles.get(posList[1]).west
 
     if(allTiles.get(posList[2]) != None):
         lookUpList[2] = allTiles.get(posList[2]).north
@@ -193,15 +195,8 @@ def checkTileD(pos):
     if(allTiles.get(posList[3]) != None):
         lookUpList[3] = allTiles.get(posList[3]).east
 
-
-    numNone = 0
-    for x in lookUpList:
-        if(x == None):
-            numNone += 1
-    if(numNone<3):
-        return tileSetDict[tuple(lookUpList)]
-    else: 
-        return "hole"
+    
+    return tileSetDict[tuple(lookUpList)]
 
 start = time.process_time()
 
@@ -215,6 +210,8 @@ allTiles = {}
 
 newTiles = {}
 
+prevTiles = {}
+
 for x in range(tableSize):
         tile = copy.deepcopy(tileSet[random.randint(0, 5)])
         tile.setTilePos(x,x)
@@ -224,14 +221,22 @@ for x in range(tableSize):
 
 possibles = set()
 
+for tile in allTiles.values():
+    cover(tile)
+
+prevTiles = copy.deepcopy(newTiles)
+
 while(True):
-    for tile in allTiles.values():
+
+    for tile in prevTiles.values():
         cover(tile)
 
     if newTiles == {}:
         break
 
     allTiles.update(newTiles)
+
+    prevTiles = copy.deepcopy(newTiles)
 
     newTiles.clear()
 
