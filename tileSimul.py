@@ -2,6 +2,9 @@ import pygame
 import random
 import copy
 import time
+import concurrent.futures
+from concurrent.futures import wait
+import multiprocessing
 from tileSetList import tileSetList
 
 class Tile :
@@ -135,7 +138,7 @@ def cover(tile):
 
         if(allTiles.get(pos) == None):
             
-            if(pos in possibles):
+            if(possibles.get(pos) != None):
 
                 tempTile = copy.deepcopy(checkTileD(pos))
 
@@ -144,10 +147,10 @@ def cover(tile):
 
                     newTiles[pos] = tempTile
 
-                possibles.remove(pos)
+                del possibles[pos]
               
             else:
-                possibles.add(pos)
+                possibles[pos] = 0
 
 def genTileSetDict(tileSet):
     tileSetDict = {}
@@ -195,43 +198,61 @@ def checkTileD(pos):
     if(allTiles.get(posList[3]) != None):
         lookUpList[3] = allTiles.get(posList[3]).east
 
-    
     return tileSetDict[tuple(lookUpList)]
 
 start = time.process_time()
 
-tableSize = 300
+tableSize = 100
 
 tileSet = [Tile(0,0,0,0),Tile(0,1,1,0),Tile(0,2,0,1),Tile(1,0,1,1),Tile(1,1,0,2),Tile(1,2,1,2)]
 
 tileSetDict = genTileSetDict(tileSet)
 
-allTiles = {}
+manager = multiprocessing.Manager()
 
-newTiles = {}
+allTiles = manager.dict()
 
-prevTiles = {}
+newTiles = manager.dict()
+
+prevTiles = manager.dict()
+
+possibles = manager.dict()
 
 for x in range(tableSize):
-        tile = copy.deepcopy(tileSet[random.randint(0, 5)])
+        tile = copy.deepcopy(tileSet[random.randint(0, len(tileSet)-1)])
         tile.setTilePos(x,x)
 
         allTiles[(x,x)] = tile
 
+with concurrent.futures.ProcessPoolExecutor() as executor:
+    #for tile in allTiles.values():
+    #    executor.submit(cover,tile)
 
-possibles = set()
+    processes = [executor.submit(cover,tile) for tile in allTiles.values()]
 
-for tile in allTiles.values():
-    cover(tile)
+    wait(processes)
+
+
+#for tile in allTiles.values():
+#    cover(tile)
+
+print(possibles)
 
 prevTiles = copy.deepcopy(newTiles)
 
 while(True):
 
-    for tile in prevTiles.values():
-        cover(tile)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        processes = [executor.submit(cover,tile) for tile in prevTiles.values()]
+        
 
-    if newTiles == {}:
+        #for tile in prevTiles.values():
+        #    executor.submit(cover,tile)
+        wait(processes)
+
+    print(len(newTiles))
+
+    if len(newTiles) == 0:
         break
 
     allTiles.update(newTiles)
