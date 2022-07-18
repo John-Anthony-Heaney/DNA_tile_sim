@@ -200,9 +200,33 @@ def checkTileD(pos):
 
     return tileSetDict[tuple(lookUpList)]
 
+def coverDir(tile,dir):
+
+    x = tile.x
+    y = tile.y
+    
+    pos = (x + dir[0], y+dir[1])
+
+    
+    if(allTiles.get(pos) == None):
+        
+        if(possibles.get(pos) != None):
+
+            tempTile = copy.deepcopy(checkTileD(pos))
+
+            if(type(tempTile) == Tile):
+                tempTile.setTilePos(pos[0],pos[1])
+
+                newTiles[pos] = tempTile
+
+            del possibles[pos]
+          
+        else:
+            possibles[pos] = 0
+
 start = time.process_time()
 
-tableSize = 100
+tableSize = 300
 
 tileSet = [Tile(0,0,0,0),Tile(0,1,1,0),Tile(0,2,0,1),Tile(1,0,1,1),Tile(1,1,0,2),Tile(1,2,1,2)]
 
@@ -225,32 +249,28 @@ for x in range(tableSize):
         allTiles[(x,x)] = tile
 
 with concurrent.futures.ProcessPoolExecutor() as executor:
-    #for tile in allTiles.values():
-    #    executor.submit(cover,tile)
+    
+    posList = [(0,1),(1,0),(0,-1),(-1,0)]
 
-    processes = [executor.submit(cover,tile) for tile in allTiles.values()]
+    for pos in posList:
+        processes = [executor.submit(coverDir,tile,pos) for tile in allTiles.values()]
+    
+        wait(processes)
 
-    wait(processes)
-
-
-#for tile in allTiles.values():
-#    cover(tile)
-
-print(possibles)
 
 prevTiles = copy.deepcopy(newTiles)
 
 while(True):
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        processes = [executor.submit(cover,tile) for tile in prevTiles.values()]
+    with concurrent.futures.ProcessPoolExecutor() as executor:#
+        posList = [(0,1),(1,0),(0,-1),(-1,0)]
+
+        for pos in posList:
+            processes = [executor.submit(coverDir,tile,pos) for tile in prevTiles.values()]
         
+            wait(processes)
 
-        #for tile in prevTiles.values():
-        #    executor.submit(cover,tile)
-        wait(processes)
-
-    print(len(newTiles))
+    
 
     if len(newTiles) == 0:
         break
