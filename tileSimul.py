@@ -224,6 +224,33 @@ def coverDir(tile,dir):
         else:
             possibles[pos] = 0
 
+
+def coverDirDict(tileDict,dir):
+
+    for tile in tileDict.values():
+
+        x = tile.x
+        y = tile.y
+        
+        pos = (x + dir[0], y+dir[1])
+
+        
+        if(allTiles.get(pos) == None):
+            
+            if(possibles.get(pos) != None):
+
+                tempTile = copy.deepcopy(checkTileD(pos))
+
+                if(type(tempTile) == Tile):
+                    tempTile.setTilePos(pos[0],pos[1])
+
+                    newTiles[pos] = tempTile
+
+                del possibles[pos]
+              
+            else:
+                possibles[pos] = 0
+
 start = time.process_time()
 
 tableSize = 300
@@ -252,23 +279,21 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
     
     posList = [(0,1),(1,0),(0,-1),(-1,0)]
 
-    for pos in posList:
-        processes = [executor.submit(coverDir,tile,pos) for tile in allTiles.values()]
+    processes = [executor.submit(coverDirDict,allTiles,pos) for pos in posList]
     
-        wait(processes)
+    wait(processes)
 
 
 prevTiles = copy.deepcopy(newTiles)
 
 while(True):
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:#
+    with concurrent.futures.ProcessPoolExecutor() as executor:
         posList = [(0,1),(1,0),(0,-1),(-1,0)]
 
-        for pos in posList:
-            processes = [executor.submit(coverDir,tile,pos) for tile in prevTiles.values()]
-        
-            wait(processes)
+        processes = [executor.submit(coverDirDict,prevTiles,pos) for pos in posList]
+    
+        wait(processes)
 
     
 
