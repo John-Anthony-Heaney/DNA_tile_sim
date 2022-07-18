@@ -253,7 +253,7 @@ def coverDirDict(tileDict,dir):
 
 start = time.process_time()
 
-tableSize = 300
+tableSize = 1000
 
 tileSet = [Tile(0,0,0,0),Tile(0,1,1,0),Tile(0,2,0,1),Tile(1,0,1,1),Tile(1,1,0,2),Tile(1,2,1,2)]
 
@@ -275,27 +275,35 @@ for x in range(tableSize):
 
         allTiles[(x,x)] = tile
 
-with concurrent.futures.ProcessPoolExecutor() as executor:
-    
-    posList = [(0,1),(1,0),(0,-1),(-1,0)]
+processes = []
 
-    processes = [executor.submit(coverDirDict,allTiles,pos) for pos in posList]
-    
-    wait(processes)
+posList = [(0,1),(1,0),(0,-1),(-1,0)]
 
+for pos in posList:
+
+    p = multiprocessing.Process(target = coverDirDict, args = [allTiles,pos])
+    p.start()
+    processes.append(p)
+
+for process in processes:
+    process.join()
 
 prevTiles = copy.deepcopy(newTiles)
 
 while(True):
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        posList = [(0,1),(1,0),(0,-1),(-1,0)]
+    processes = []
 
-        processes = [executor.submit(coverDirDict,prevTiles,pos) for pos in posList]
-    
-        wait(processes)
+    posList = [(0,1),(1,0),(0,-1),(-1,0)]
 
-    
+    for pos in posList:
+
+        p = multiprocessing.Process(target = coverDirDict, args = [prevTiles,pos])
+        p.start()
+        processes.append(p)
+
+    for process in processes:
+        process.join()
 
     if len(newTiles) == 0:
         break
@@ -306,13 +314,13 @@ while(True):
 
     newTiles.clear()
 
-print(time.process_time() - start)
 
+print(time.process_time() - start)
 
 pygame.init()
 
 # Set up the drawing window
-screenDim = 1000
+screenDim = 3127
 screen = pygame.display.set_mode([screenDim, screenDim])
 
 
