@@ -150,32 +150,28 @@ def cover(tile):
                 possibles.add(pos)
 
 def genTileSetDict(tileSet):
-    tileSetDict = {}
     
+    tileSetDict = {}
+        
     for x in tileSetList:
-        numPosTile = 0
-        returnTile = None
+        posTiles = []
         for tile in tileSet:
-            
             tempList = [tile.north==x[0] or x[0]==None,
             tile.east==x[1] or x[1]==None,
             tile.south==x[2] or x[2]==None,
             tile.west==x[3] or x[3]==None]
-
+    
             if(all(tempList)):
-                numPosTile +=1
-                if(returnTile == None):
-                    returnTile = copy.deepcopy(tile)
-                else:
-                    break
-        if(numPosTile>1):
-            tileSetDict[x] = "undetermined"
-        elif(returnTile != None):
-            tileSetDict[x] = returnTile
+                posTiles.append(copy.deepcopy(tile))
+                
+        if(len(posTiles)>1):
+            tileSetDict[x] = posTiles
+        elif(len(posTiles)==1):
+            tileSetDict[x] = posTiles[0]
         else:
             tileSetDict[x] = "hole"
-
-    return tileSetDict 
+            
+    return tileSetDict
 
 def checkTileD(pos):
     lookUpList = [None,None,None,None]
@@ -195,12 +191,15 @@ def checkTileD(pos):
     if(allTiles.get(posList[3]) != None):
         lookUpList[3] = allTiles.get(posList[3]).east
 
-    
-    return tileSetDict[tuple(lookUpList)]
+    if(type(tileSetDict[tuple(lookUpList)])== list):
+        
+        return random.choice(tileSetDict[tuple(lookUpList)])
+    else:
+        return tileSetDict[tuple(lookUpList)]
 
-start = time.process_time()
+start = time.time()
 
-tableSize = 300
+tableSize = 10
 
 tileSet = [Tile(0,0,0,0),Tile(0,1,1,0),Tile(0,2,0,1),Tile(1,0,1,1),Tile(1,1,0,2),Tile(1,2,1,2)]
 
@@ -213,7 +212,8 @@ newTiles = {}
 prevTiles = {}
 
 for x in range(tableSize):
-        tile = copy.deepcopy(tileSet[random.randint(0, 5)])
+        l = len(tileSet) -1
+        tile = copy.deepcopy(tileSet[random.randint(0, l)])
         tile.setTilePos(x,x)
 
         allTiles[(x,x)] = tile
@@ -240,7 +240,7 @@ while(True):
 
     newTiles.clear()
 
-print(time.process_time() - start)
+print(time.time() - start)
 
 
 pygame.init()
