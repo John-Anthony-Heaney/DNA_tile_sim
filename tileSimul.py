@@ -1,11 +1,11 @@
 import pygame
 import random
+import itertools
 import copy
 import time
-import concurrent.futures
-from concurrent.futures import wait
-import multiprocessing
+import json
 from tileSetList import tileSetList
+
 
 class Tile :
     def __init__(self, north, east,south,west):
@@ -33,12 +33,13 @@ def showTile(tile,screenDim,tableSize):
         x = size*3 + size *2*tile.x
         y = screenDim-size*3 - size*2*tile.y
 
-        tileColors = {0:(255,222,173),1:(0,255,0),2:(255,0,0)}
+        tileColors = {0:(255,222,173),1:(0,255,0),2:(255,0,0),3:(211,211,211)}
 
         brown = (255,222,173)
         green = (0,255,0)
         red = (255,0,0)
         black = (0,0,0)
+        grey = (211,211,211)
 
         center = (x,y)
         topLeft = (x-size,y-size)
@@ -132,13 +133,25 @@ def cover(tile):
 
     x = tile.x
     y = tile.y
-    posList = [(x,y+1),(x+1,y),(x,y-1),(x-1,y)]
+    posList = []
+
+    if(tile.north != 3):
+        posList.append((x,y+1))
+    if(tile.east != 3):
+        posList.append((x+1,y))
+    if(tile.south != 3):
+        posList.append((x,y-1))
+    if(tile.west != 3):
+        posList.append((x-1,y)) 
 
     for pos in posList:
+        #bprint(pos)
+
 
         if(allTiles.get(pos) == None):
-            
-            if(possibles.get(pos) != None):
+
+            if(pos in possibles):
+                print("This pos triggered", pos)
 
                 tempTile = copy.deepcopy(checkTileD(pos))
 
@@ -147,23 +160,26 @@ def cover(tile):
 
                     newTiles[pos] = tempTile
 
-                del possibles[pos]
-              
+                possibles.remove(pos)
+
             else:
-                possibles[pos] = 0
+                possibles.add(pos)
 
 def genTileSetDict(tileSet):
+    x = [0,1, 2, 3,None]
+    prod = [p for p in itertools.product(x, repeat=4)]
+
     tileSetDict = {}
-    
-    for x in tileSetList:
+
+    for x in prod:
         numPosTile = 0
         returnTile = None
         for tile in tileSet:
-            
-            tempList = [tile.north==x[0] or x[0]==None,
-            tile.east==x[1] or x[1]==None,
-            tile.south==x[2] or x[2]==None,
-            tile.west==x[3] or x[3]==None]
+
+            tempList = [tile.north==x[0] or x[0]==None or x[0] == 3,
+            tile.east==x[1] or x[1]==None or x[1] == 3,
+            tile.south==x[2] or x[2]==None or x[2] == 3,
+            tile.west==x[3] or x[3]==None or x[3] == 3]
 
             if(all(tempList)):
                 numPosTile +=1
@@ -194,133 +210,71 @@ def checkTileD(pos):
 
     if(allTiles.get(posList[2]) != None):
         lookUpList[2] = allTiles.get(posList[2]).north
-          
+
     if(allTiles.get(posList[3]) != None):
         lookUpList[3] = allTiles.get(posList[3]).east
 
+
     return tileSetDict[tuple(lookUpList)]
-
-def coverDir(tile,dir):
-
-    x = tile.x
-    y = tile.y
-    
-    pos = (x + dir[0], y+dir[1])
-
-    
-    if(allTiles.get(pos) == None):
-        
-        if(possibles.get(pos) != None):
-
-            tempTile = copy.deepcopy(checkTileD(pos))
-
-            if(type(tempTile) == Tile):
-                tempTile.setTilePos(pos[0],pos[1])
-
-                newTiles[pos] = tempTile
-
-            del possibles[pos]
-          
-        else:
-            possibles[pos] = 0
-
-
-def coverDirDict(tileDict,dir):
-
-    for tile in tileDict.values():
-
-        x = tile.x
-        y = tile.y
-        
-        pos = (x + dir[0], y+dir[1])
-
-        
-        if(allTiles.get(pos) == None):
-            
-            if(possibles.get(pos) != None):
-
-                tempTile = copy.deepcopy(checkTileD(pos))
-
-                if(type(tempTile) == Tile):
-                    tempTile.setTilePos(pos[0],pos[1])
-
-                    newTiles[pos] = tempTile
-
-                del possibles[pos]
-              
-            else:
-                possibles[pos] = 0
 
 start = time.process_time()
 
-tableSize = 1000
+tableSize = 30
 
-tileSet = [Tile(0,0,0,0),Tile(0,1,1,0),Tile(0,2,0,1),Tile(1,0,1,1),Tile(1,1,0,2),Tile(1,2,1,2)]
+tileSet = [Tile(0,0,1,1),Tile(0,1,1,0),Tile(1,0,1,0),Tile(1,1,0,1)]
 
 tileSetDict = genTileSetDict(tileSet)
 
-manager = multiprocessing.Manager()
+allTiles = {}
 
-allTiles = manager.dict()
+newTiles = {}
 
-newTiles = manager.dict()
+prevTiles = {}
 
-prevTiles = manager.dict()
+possibles = set()
 
-possibles = manager.dict()
+f = open('tile_string.json')
+tileData = json.load(f)
 
-for x in range(tableSize):
-        tile = copy.deepcopy(tileSet[random.randint(0, len(tileSet)-1)])
-        tile.setTilePos(x,x)
+for coor in tileData.keys():
+    allTiles[(int(coor[:coor.index(",")]),int(coor[coor.index(",")+1:]))] = Tile(int(tileData[coor][0]),
+        int(tileData[coor][1]),int(tileData[coor][2]),int(tileData[coor][3]))
+    allTiles[(int(coor[:coor.index(",")]),int(coor[coor.index(",")+1:]))].setTilePos(int(coor[:coor.index(",")]),int(coor[coor.index(",")+1:]))
 
-        allTiles[(x,x)] = tile
 
-processes = []
 
-posList = [(0,1),(1,0),(0,-1),(-1,0)]
+for tile in allTiles.values():
+    cover(tile)
 
-for pos in posList:
-
-    p = multiprocessing.Process(target = coverDirDict, args = [allTiles,pos])
-    p.start()
-    processes.append(p)
-
-for process in processes:
-    process.join()
-
+allTiles.update(newTiles)
 prevTiles = copy.deepcopy(newTiles)
+newTiles.clear()
+#print("previous Tiles",prevTiles.keys())
 
 while(True):
 
-    processes = []
+    for tile in prevTiles.values():
+        cover(tile)
 
-    posList = [(0,1),(1,0),(0,-1),(-1,0)]
-
-    for pos in posList:
-
-        p = multiprocessing.Process(target = coverDirDict, args = [prevTiles,pos])
-        p.start()
-        processes.append(p)
-
-    for process in processes:
-        process.join()
-
-    if len(newTiles) == 0:
-        break
 
     allTiles.update(newTiles)
 
     prevTiles = copy.deepcopy(newTiles)
 
+    if newTiles == {}:
+        break
+
     newTiles.clear()
 
+print(allTiles.keys())
 
 print(time.process_time() - start)
+
 
 pygame.init()
 
 # Set up the drawing window
-screenDim = 3127
+screenDim = 1000
 screen = pygame.display.set_mode([screenDim, screenDim])
 
 
@@ -346,4 +300,3 @@ while running:
 
 # Done! Time to quit.
 pygame.quit()
-
